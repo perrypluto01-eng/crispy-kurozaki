@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zucabot Chat Assistant</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body { background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    
+    .chat-container { width: 380px; height: 520px; background: #ffffff; border-radius: 10px; box-shadow: 0px 4px 12px rgba(0,0,0,0.15); display: flex; flex-direction: column; overflow: hidden; }
+    .chat-header { background: #007bff; color: white; padding: 15px; font-weight: bold; text-align: center; }
+    
+    .chatbox { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .msg { max-width: 80%; padding: 10px 14px; border-radius: 15px; line-height: 1.4; font-size: 14px; }
+    .bot-msg { background: #e9ecef; color: #333; align-self: flex-start; border-bottom-left-radius: 2px; }
+    .user-msg { background: #007bff; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+    
+    .btn-container { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .quick-btn { background: #ffffff; color: #007bff; border: 1px solid #007bff; padding: 6px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; transition: 0.2s; }
+    .quick-btn:hover { background: #007bff; color: white; }
+    
+    .input-area { display: flex; padding: 10px; border-top: 1px solid #ddd; background: #fff; }
+    .input-area input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 20px; outline: none; padding-left: 15px; }
+    .input-area button { background: #007bff; color: white; border: none; padding: 10px 18px; margin-left: 8px; border-radius: 20px; cursor: pointer; }
+    .input-area button:hover { background: #0056b3; }
+  </style>
+</head>
+<body>
+
+  <div class="chat-container">
+    <div class="chat-header">Zucabot Assistant</div>
+    <div class="chatbox" id="chatbox">
+      <div class="msg bot-msg">
+        Hello! How can I assist you today?
+        <div class="btn-container">
+          <button class="quick-btn" onclick="sendQuickReply('Pricing')">Pricing</button>
+          <button class="quick-btn" onclick="sendQuickReply('Hours')">Hours</button>
+          <button class="quick-btn" onclick="sendQuickReply('Contact Support')">Contact Support</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="input-area">
+      <input type="text" id="user-input" placeholder="Type your message..." onkeypress="if(event.key === 'Enter') handleSend()">
+      <button onclick="handleSend()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    async function sendMessage(text) {
+      if (!text) return;
+      const chatbox = document.getElementById('chatbox');
+
+      // Append user's message
+      chatbox.innerHTML += `<div class="msg user-msg">${escapeHtml(text)}</div>`;
+      chatbox.scrollTop = chatbox.scrollHeight;
+
+      // Post message to backend
+      const response = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text })
+      });
+      const data = await response.json();
+
+      // Render bot response
+      let botHtml = `<div class="msg bot-msg">${escapeHtml(data.reply)}`;
+      if (data.options && data.options.length > 0) {
+        botHtml += `<div class="btn-container">`;
+        data.options.forEach(opt => {
+          botHtml += `<button class="quick-btn" onclick="sendQuickReply('${opt}')">${opt}</button>`;
+        });
+        botHtml += `</div>`;
+      }
+      botHtml += `</div>`;
+
+      chatbox.innerHTML += botHtml;
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    function handleSend() {
+      const input = document.getElementById('user-input');
+      sendMessage(input.value.trim());
+      input.value = '';
+    }
+
+    function sendQuickReply(text) {
+      sendMessage(text);
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+  </script>
+</body>
+</html>
